@@ -12,12 +12,14 @@ def get_src_tgt_datasets(src, tgt, img_size=32):
 
     return train_set, val_set, test_set
 
+
 def get_train_dataset(name, img_size=32):
     train_set, val_set = get_dataset(name, True, img_size)
     return train_set, val_set
 
 
 def get_test_dataset(name, img_size=32):
+    
     dataset, _ = get_dataset(name, False, img_size)
     return dataset
 
@@ -27,9 +29,8 @@ def get_dataset(name, train, img_size):
         return get_mnist(train, img_size)
     if name == "svhn":
         return get_svhn(train, img_size)
-    if name == "mnist-m":
+    if name == "mnist_m":
         return get_mnist_m(train, img_size)
-
 
 def get_mnist(train, img_size):
     transform_mnist_train = transforms.Compose([
