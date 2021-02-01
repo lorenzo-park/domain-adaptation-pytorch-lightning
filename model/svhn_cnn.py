@@ -13,17 +13,17 @@ class SVHNCNN(nn.Module):
             nn.Conv2d(in_channels=3, out_channels=64, kernel_size=5, padding=2),
 #             DebugLayer(),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d((3,3), (2,2)),
+            nn.MaxPool2d(kernel_size=(3,3), stride=(2,2)),
 #             DebugLayer(),
             nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, padding=2),
 #             DebugLayer(),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d((3,3), (2,2)),
+            nn.MaxPool2d(kernel_size=(3,3), stride=(2,2)),
 #             DebugLayer(),
             nn.Conv2d(in_channels=64, out_channels=128, kernel_size=5, padding=2),
 #             DebugLayer(),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d((3,3), (2,2)),
+            nn.MaxPool2d(kernel_size=(3,3), stride=(2,2)),
 #             DebugLayer(),
             Flatten(),
         )
@@ -35,7 +35,6 @@ class SVHNCNN(nn.Module):
             nn.Linear(in_features=3072, out_features=2048),
             nn.ReLU(inplace=True),
             nn.Linear(in_features=2048, out_features=10),
-            nn.Sigmoid(),
         )
         
         self.discriminator = nn.Sequential(
@@ -43,6 +42,5 @@ class SVHNCNN(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(in_features=1024, out_features=1024),
             nn.ReLU(inplace=True),
-            nn.Linear(in_features=1024, out_features=1),
-            nn.Sigmoid(),
+            nn.Linear(in_features=1024, out_features=2),
         )
