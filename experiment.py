@@ -41,8 +41,7 @@ trainer = pl.Trainer(
     check_val_every_n_epoch=1, 
     gpus=1,
     logger=logger,
-    max_epochs=params["epoch"], 
-    weights_summary=None,
+    max_epochs=params["epoch"],
 )
 trainer.fit(model)
 trainer.test()
