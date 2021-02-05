@@ -5,11 +5,8 @@ from pl_model.source_only import SO
 
 
 def get_img_size_from_source_dataset(src):
-    if src == "mnist":
-        return 28
-    
     # Default img_size is 32
-    return 32
+    return 28
 
 
 def get_baseline_model(src):

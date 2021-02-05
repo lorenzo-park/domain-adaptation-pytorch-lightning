@@ -20,7 +20,12 @@ class DANN(pl.LightningModule):
         self.test_accuracy = pl.metrics.Accuracy()
         
         self.train_set_src, self.val_set_src = get_train_dataset(params["src"], params["img_size"])
-        self.train_set_tgt, _ = get_train_dataset(params["tgt"], params["img_size"])
+        self.train_set_tgt, self.val_set_tgt = get_train_dataset(params["tgt"], params["img_size"])
+        if params["use_tgt_val"]:
+            print("####### WARNING #######")
+            print("Using target validation set is not valid unsupervised d.a. setting.")
+            print("#######################")
+            self.val_set_src = self.val_set_tgt
         self.test_set_tgt = get_test_dataset(params["tgt"], params["img_size"])
         
         self.batch_size = params["batch_size"]
@@ -29,6 +34,8 @@ class DANN(pl.LightningModule):
         self.gamma = params["gamma"]
         self.alpha = params["alpha"]
         self.beta = params["beta"]
+        
+        self.lr_schedule = params["lr_schedule"]
 
     def training_step(self, batch, batch_idx):
         (inputs_src, targets_src), (inputs_tgt, _) = batch
@@ -38,10 +45,10 @@ class DANN(pl.LightningModule):
         iterations = self.global_step
         p = float(iterations / (self.epochs * (len(self.train_set_src) // self.batch_size)))
         
-        # Schedule learning rate
-        for param_group in self.optimizers().param_groups:
-            param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
-#             print(param_group["lr"])
+        if self.lr_schedule:
+            # Schedule learning rate
+            for param_group in self.optimizers().param_groups:
+                param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
         
         # Calculate classification loss
         features_src = self.feature_extractor(inputs_src)

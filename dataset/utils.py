@@ -19,7 +19,6 @@ def get_train_dataset(name, img_size=32):
 
 
 def get_test_dataset(name, img_size=32):
-    
     dataset, _ = get_dataset(name, False, img_size)
     return dataset
 
