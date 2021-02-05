@@ -12,7 +12,7 @@ parser.add_argument("--model", type=str, required=True, help="domain adaptation 
 parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
 parser.add_argument("--epoch", type=int, default=20, help="epochs")
 parser.add_argument("--batch_size", type=int, default=64, help="batch size")
-parser.add_argument("--lr_schedule", type=bool, default=True, help="schedule lr")
+parser.add_argument("--lr_schedule", type=bool, default=False, help="schedule lr")
 parser.add_argument("--use_tgt_val", type=bool, default=False, help="Use target validation")
 
 args = parser.parse_args()
@@ -31,6 +31,8 @@ params = {
     "beta": 0.75,
     "seed": 42
 }
+
+print(params)
 
 pl.seed_everything(params["seed"])
 
