@@ -26,6 +26,8 @@ def get_test_dataset(name, img_size=32):
 def get_dataset(name, train, img_size):
     if name == "mnist":
         return get_mnist(train, img_size)
+    if name == "emnist_letters":
+        return get_emnist_letters(train, img_size)
     if name == "svhn":
         return get_svhn(train, img_size)
     if name == "mnist_m":
@@ -46,6 +48,24 @@ def get_mnist(train, img_size):
     else:
         return dataset, None
 
+
+def get_emnist_letters(train, img_size):
+    transform_mnist_train = transforms.Compose([
+#         transforms.CenterCrop(size=(img_size, img_size)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5], std=[0.5]),
+        transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
+    ])
+    
+    dataset = torchvision.datasets.EMNIST(root='./data', train=train, split="letters", download=True, transform=transform_mnist_train)
+    dataset_len = len(dataset)
+    if train:
+        train_set, val_set = torch.utils.data.random_split(dataset, [50000, dataset_len-50000])
+        val_set, _ = torch.utils.data.random_split(val_set, [10000, len(val_set)-10000])
+        return train_set, None
+    else:
+        return dataset, None
+    
 
 def get_svhn(train, img_size):
     transform_svhn_train = transforms.Compose([

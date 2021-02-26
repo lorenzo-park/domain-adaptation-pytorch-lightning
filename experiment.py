@@ -8,6 +8,7 @@ import pytorch_lightning as pl
 parser = argparse.ArgumentParser(description="Paper experiment results reproduction")
 parser.add_argument("--src", type=str, required=True, help="source dataset, e.g. mnist")
 parser.add_argument("--tgt", type=str, required=True, help="target dataset, e.g. mnist_m")
+parser.add_argument("--disjoint", type=str, required=False, default=None, help="disjoint training dataset, e.g. mnist_m")
 parser.add_argument("--model", type=str, required=True, help="domain adaptation model name")
 parser.add_argument("--lr", type=float, default=1e-2, help="learning rate")
 parser.add_argument("--epoch", type=int, default=20, help="epochs")
@@ -23,6 +24,7 @@ params = {
     "lr": args.lr,
     "src": args.src,
     "tgt": args.tgt,
+    "disjoint": args.disjoint,
     "use_tgt_val": args.use_tgt_val,
     "img_size": get_img_size_from_source_dataset(args.src),
     "lr_schedule": args.lr_schedule,

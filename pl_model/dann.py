@@ -21,11 +21,16 @@ class DANN(pl.LightningModule):
         
         self.train_set_src, self.val_set_src = get_train_dataset(params["src"], params["img_size"])
         self.train_set_tgt, self.val_set_tgt = get_train_dataset(params["tgt"], params["img_size"])
+        
+        if params["disjoint"]:
+            self.train_set_tgt, _ = get_train_dataset(params["disjoint"], params["img_size"])
+        
         if params["use_tgt_val"]:
             print("####### WARNING #######")
             print("Using target validation set is not valid unsupervised d.a. setting.")
             print("#######################")
             self.val_set_src = self.val_set_tgt
+        
         self.test_set_tgt = get_test_dataset(params["tgt"], params["img_size"])
         
         self.batch_size = params["batch_size"]
