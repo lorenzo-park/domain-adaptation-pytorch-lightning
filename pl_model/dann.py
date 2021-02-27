@@ -1,8 +1,10 @@
 from dataset.utils import get_train_dataset, get_test_dataset
 from model.component import GRL
+from model.resnet import ResNet
 from torch.utils.data import DataLoader
 
 import torch
+import torchsummary
 import torch.nn.functional as F
 import pytorch_lightning as pl
 import numpy as np
@@ -11,6 +13,9 @@ import numpy as np
 class DANN(pl.LightningModule):
     def __init__(self, model, params):
         super().__init__()
+        if model.__class__ == ResNet:
+            self.finetune = True
+            
         self.feature_extractor = model.feature_extractor
         self.classifier = model.classifier
         self.discriminator = model.discriminator
@@ -41,6 +46,31 @@ class DANN(pl.LightningModule):
         self.beta = params["beta"]
         
         self.lr_schedule = params["lr_schedule"]
+        self.use_bottleneck = params["use_bottleneck"]
+        
+        if self.finetune:
+            self.model_parameter = [
+                {
+                    'params': self.feature_extractor.parameters(), 
+                    "lr": self.lr * 0.1,
+                },
+                {
+                    'params': self.classifier.parameters(),
+                },
+                {
+                    'params': self.discriminator.parameters(),
+                }
+            ]
+        else:
+            self.model_parameter = [
+                {'params': self.feature_extractor.parameters()},
+                {'params': self.classifier.parameters()},
+                {'params': self.discriminator.parameters()}
+            ]
+        
+        if self.use_bottleneck:
+            self.bottleneck = model.bottleneck
+            self.model_parameter.append({'params': self.bottleneck.parameters()})
 
     def training_step(self, batch, batch_idx):
         (inputs_src, targets_src), (inputs_tgt, _) = batch
@@ -52,11 +82,17 @@ class DANN(pl.LightningModule):
         
         if self.lr_schedule:
             # Schedule learning rate
-            for param_group in self.optimizers().param_groups:
-                param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
+            if self.finetune:
+                for param_group in self.optimizers().param_groups[1:]:
+                    param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
+            else:
+                for param_group in self.optimizers().param_groups:
+                    param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
         
         # Calculate classification loss
         features_src = self.feature_extractor(inputs_src)
+        if self.use_bottleneck:
+            features_src = self.bottleneck(features_src)
         outputs_src = self.classifier(features_src)
         loss_cls = F.nll_loss(F.log_softmax(outputs_src, 1), targets_src)
         
@@ -66,6 +102,8 @@ class DANN(pl.LightningModule):
         outputs_domain_src = self.discriminator(features_src)
         
         features_tgt = self.feature_extractor(inputs_tgt)
+        if self.use_bottleneck:
+            features_tgt = self.bottleneck(features_tgt)
         features_tgt = GRL.apply(features_tgt, lambda_p)
         outputs_domain_tgt = self.discriminator(features_tgt)
         
@@ -88,6 +126,8 @@ class DANN(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         inputs, targets = batch
         features = self.feature_extractor(inputs)
+        if self.use_bottleneck:
+            features = self.bottleneck(features)
         outputs = self.classifier(features)
         
         loss_cls = F.nll_loss(F.log_softmax(outputs, 1), targets)
@@ -102,6 +142,8 @@ class DANN(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         inputs, targets = batch
         features = self.feature_extractor(inputs)
+        if self.use_bottleneck:
+            features = self.bottleneck(features)
         outputs = self.classifier(features)
         
         loss_cls = F.nll_loss(F.log_softmax(outputs, 1), targets)
@@ -115,11 +157,7 @@ class DANN(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.SGD(
-            [
-                {'params': self.feature_extractor.parameters()},
-                {'params': self.classifier.parameters()},
-                {'params': self.discriminator.parameters()}
-            ],
+            self.model_parameter,
             lr=self.lr,
             momentum=0.9,
         )

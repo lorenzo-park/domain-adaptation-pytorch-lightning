@@ -20,14 +20,32 @@ class SO(pl.LightningModule):
         self.train_set_src, self.val_set_src = get_train_dataset(params["src"], params["img_size"])
         self.test_set_tgt = get_test_dataset(params["tgt"], params["img_size"])
         
+        if params["use_tgt_val"]:
+            print("####### WARNING #######")
+            print("Using target validation set is not valid unsupervised d.a. setting.")
+            print("#######################")
+            self.val_set_src = self.test_set_tgt
+        
         self.batch_size = params["batch_size"]
         self.lr = params["lr"]
-        self.epoch = params["epoch"]
+        self.epochs = params["epoch"]
+        self.gamma = params["gamma"]
+        self.alpha = params["alpha"]
+        self.beta = params["beta"]
+        
+        self.lr_schedule = params["lr_schedule"]
 
     def training_step(self, batch, batch_idx):
         inputs_src, targets_src = batch
         device = inputs_src.device
+        
         iterations = self.global_step
+        p = float(iterations / (self.epochs * (len(self.train_set_src) // self.batch_size)))
+        
+        if self.lr_schedule:
+            # Schedule learning rate
+            for param_group in self.optimizers().param_groups:
+                param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
         
         features_src = self.feature_extractor(inputs_src)
         outputs_src = self.classifier(features_src)
