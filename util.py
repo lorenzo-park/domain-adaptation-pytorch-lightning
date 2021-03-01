@@ -14,10 +14,10 @@ def get_img_size_from_source_dataset(src):
         return 28
     
     if src in ["A", "W", "D"]:
-        return 227
+        return 224
     
     if src in ["Ar", "Cl", "Pr", "Rw"]:
-        return 227
+        return 224
 
 
 def get_baseline_model(src, use_bottleneck=False):

@@ -107,6 +107,11 @@ def get_mnist_m(train, img_size):
     
     
 def get_office31(train, img_size, domain_type):
+    #     transform_train = transforms.Compose([
+    #         transforms.Resize(227),
+    #         transforms.ToTensor(),
+    #         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    #     ])
     transform_train = transforms.Compose([
         transforms.Lambda(lambda image: image.resize((256, 256))),
         transforms.RandomResizedCrop(size=(img_size, img_size)),
@@ -114,13 +119,24 @@ def get_office31(train, img_size, domain_type):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
+    start_first = 0
+    start_center = (256 - img_size - 1) / 2
+    start_last = 256 - img_size - 1
+
+    transform_test = transforms.Compose([
+        transforms.Lambda(lambda image: image.resize((256, 256))),
+        PlaceCrop(img_size, start_center, start_center),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
     
-    dataset = Office31(root="./data/office31", task=domain_type, download=True, transform=transform_train)
+    dataset_train = Office31(root="./data/office31", task=domain_type, download=True, transform=transform_train)
+    dataset_test = Office31(root="./data/office31", task=domain_type, download=True, transform=transform_test)
 
     if train:
-        return dataset, dataset
+        return dataset_train, dataset_test
     else:
-        return dataset, None
+        return dataset_test, None
 
 
 def get_officehome(train, img_size, domain_type):
@@ -138,3 +154,30 @@ def get_officehome(train, img_size, domain_type):
         return dataset, dataset
     else:
         return dataset, None
+
+    
+class PlaceCrop(object):
+    """Crops the given PIL.Image at the particular index.
+    Args:
+        size (sequence or int): Desired output size of the crop. If size is an
+            int instead of sequence like (w, h), a square crop (size, size) is
+            made.
+    """
+
+    def __init__(self, size, start_x, start_y):
+        if isinstance(size, int):
+            self.size = (int(size), int(size))
+        else:
+            self.size = size
+        self.start_x = start_x
+        self.start_y = start_y
+
+    def __call__(self, img):
+        """
+        Args:
+            img (PIL.Image): Image to be cropped.
+        Returns:
+            PIL.Image: Cropped image.
+        """
+        th, tw = self.size
+        return img.crop((self.start_x, self.start_y, self.start_x + tw, self.start_y + th))

@@ -44,6 +44,8 @@ class DANN(pl.LightningModule):
         self.gamma = params["gamma"]
         self.alpha = params["alpha"]
         self.beta = params["beta"]
+        self.momentum = params["momentum"]
+        self.weight_decay = params["weight_decay"]
         
         self.lr_schedule = params["lr_schedule"]
         self.use_bottleneck = params["use_bottleneck"]
@@ -53,14 +55,17 @@ class DANN(pl.LightningModule):
                 {
                     "params": self.feature_extractor.parameters(), 
                     "lr_mult": params["fe_lr"],
+                    'decay_mult': 1,
                 },
                 {
                     "params": self.classifier.parameters(),
                     "lr_mult": params["cls_lr"],
+                    'decay_mult': 1,
                 },
                 {
                     "params": self.discriminator.parameters(),
                     "lr_mult": params["disc_lr"],
+                    'decay_mult': 1,
                 }
             ]
         else:
@@ -85,41 +90,37 @@ class DANN(pl.LightningModule):
         iterations = self.global_step
         current_epoch = self.current_epoch
         len_dataloader = self.len_dataloader
-        p = float(iterations + current_epoch * len_dataloader) / \
-                    self.epochs / len_dataloader
+        p = float(iterations / (self.epochs * len_dataloader))
+        lambda_p = 2. / (1. + np.exp(-self.gamma * p)) - 1
         
         if self.lr_schedule:
             # Schedule learning rate
             if self.finetune:
                 for param_group in self.optimizers().param_groups:
                     param_group["lr"] = param_group["lr_mult"] * self.lr / (1. + self.alpha * p) ** self.beta
+                    param_group['weight_decay'] = self.weight_decay * param_group['decay_mult']
 #                 print(list(map(lambda x: x["lr"], self.optimizers().param_groups)))
             else:
                 for param_group in self.optimizers().param_groups:
                     param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
         
+        targets_domain_src = torch.ones(inputs_src.shape[0]).long().to(device)
+        targets_domain_tgt = torch.zeros(inputs_tgt.shape[0]).long().to(device)
+        
         # Calculate classification loss
         features_src = self.feature_extractor(inputs_src)
-        if self.use_bottleneck:
-            features_src = self.bottleneck(features_src)
+        features_src_rev = GRL.apply(features_src, lambda_p)
         outputs_src = self.classifier(features_src)
-        loss_cls = F.nll_loss(F.log_softmax(outputs_src, 1), targets_src)
+        outputs_domain_src = self.discriminator(features_src_rev)
         
-        # Calculate domain discrimination loss
-        lambda_p = 2. / (1. + np.exp(-self.gamma * p)) - 1
-        features_src = GRL.apply(features_src, lambda_p)
-        outputs_domain_src = self.discriminator(features_src)
+        loss_cls = F.cross_entropy(outputs_src, targets_src)
+        loss_dsc_src = F.cross_entropy(outputs_domain_src, targets_domain_src)
         
         features_tgt = self.feature_extractor(inputs_tgt)
-        if self.use_bottleneck:
-            features_tgt = self.bottleneck(features_tgt)
-        features_tgt = GRL.apply(features_tgt, lambda_p)
-        outputs_domain_tgt = self.discriminator(features_tgt)
+        features_tgt_rev = GRL.apply(features_tgt, lambda_p)
+        outputs_domain_tgt = self.discriminator(features_tgt_rev)
         
-        targets_domain_src = torch.ones(outputs_domain_src.shape[0]).to(device).long()
-        targets_domain_tgt = torch.zeros(outputs_domain_tgt.shape[0]).to(device).long()
-        loss_dsc_src = F.nll_loss(F.log_softmax(outputs_domain_src, 1), targets_domain_src)
-        loss_dsc_tgt = F.nll_loss(F.log_softmax(outputs_domain_tgt, 1), targets_domain_tgt)
+        loss_dsc_tgt = F.cross_entropy(outputs_domain_tgt, targets_domain_tgt)
         loss = loss_cls + loss_dsc_src + loss_dsc_tgt
         
         # Record logs
@@ -136,11 +137,9 @@ class DANN(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         inputs, targets = batch
         features = self.feature_extractor(inputs)
-        if self.use_bottleneck:
-            features = self.bottleneck(features)
         outputs = self.classifier(features)
         
-        loss_cls = F.nll_loss(F.log_softmax(outputs, 1), targets)
+        loss_cls = F.cross_entropy(outputs, targets)
         self.log("val_acc", self.val_accuracy(outputs, targets), on_epoch=True)
         self.log("val_loss_cls", loss_cls, on_epoch=True)
         
@@ -152,11 +151,9 @@ class DANN(pl.LightningModule):
     def test_step(self, batch, batch_idx):
         inputs, targets = batch
         features = self.feature_extractor(inputs)
-        if self.use_bottleneck:
-            features = self.bottleneck(features)
         outputs = self.classifier(features)
         
-        loss_cls = F.nll_loss(F.log_softmax(outputs, 1), targets)
+        loss_cls = F.cross_entropy(outputs, targets)
         self.log("test_acc", self.test_accuracy(outputs, targets), on_epoch=True, prog_bar=True, logger=True)
         self.log("test_loss_cls", loss_cls, on_epoch=True, logger=True)
         
@@ -169,8 +166,8 @@ class DANN(pl.LightningModule):
         optimizer = torch.optim.SGD(
             self.model_parameter,
             lr=self.lr,
-            momentum=0.9,
-            weight_decay=1e-4,
+            momentum=self.momentum,
+            weight_decay=self.weight_decay,
             nesterov=True
         )
 
