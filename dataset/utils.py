@@ -115,7 +115,7 @@ def get_office31(train, img_size, domain_type):
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     
-    dataset = Office31(root="./data/office31", task=domain_type, train=train, download=True, transform=transform_train)
+    dataset = Office31(root="./data/office31", task=domain_type, download=True, transform=transform_train)
 
     if train:
         return dataset, dataset

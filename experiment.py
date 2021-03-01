@@ -17,6 +17,9 @@ parser.add_argument("--batch_size", type=int, default=64, help="batch size")
 parser.add_argument("--lr_schedule", type=bool, default=False, help="schedule lr")
 parser.add_argument("--use_bottleneck", type=bool, default=False, help="use bottleneck layer")
 parser.add_argument("--use_tgt_val", type=bool, default=False, help="Use target validation")
+parser.add_argument("--fe_lr", type=float, default=0.1, help="Use target validation")
+parser.add_argument("--cls_lr", type=float, default=0.1, help="Use target validation")
+parser.add_argument("--disc_lr", type=float, default=1.0, help="Use target validation")
 
 args = parser.parse_args()
 
@@ -35,7 +38,10 @@ params = {
     "gamma": 10,
     "alpha": 10,
     "beta": 0.75,
-    "seed": 42
+    "seed": 42,
+    "fe_lr": args.fe_lr,
+    "cls_lr": args.cls_lr,
+    "disc_lr": args.disc_lr,
 }
 
 print(params)
@@ -53,7 +59,7 @@ logger = NeptuneLogger(
     project_name="kaggle.lorenzo.park/domain-adaptation",
     params=params,
     experiment_name=f"{params['src']}2{params['tgt']}",
-    tags=[f"{model.__class__.__name__}", f"{base_model.__class__.__name__}"]
+    tags=[f"{model.__class__.__name__}", f"{base_model.__class__.__name__}", "lorenzo-lab"]
 )
 
 # logger = pl.loggers.TestTubeLogger("output", name=)

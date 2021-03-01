@@ -51,26 +51,31 @@ class DANN(pl.LightningModule):
         if self.finetune:
             self.model_parameter = [
                 {
-                    'params': self.feature_extractor.parameters(), 
-                    "lr": self.lr * 0.1,
+                    "params": self.feature_extractor.parameters(), 
+                    "lr_mult": params["fe_lr"],
                 },
                 {
-                    'params': self.classifier.parameters(),
+                    "params": self.classifier.parameters(),
+                    "lr_mult": params["cls_lr"],
                 },
                 {
-                    'params': self.discriminator.parameters(),
+                    "params": self.discriminator.parameters(),
+                    "lr_mult": params["disc_lr"],
                 }
             ]
         else:
             self.model_parameter = [
-                {'params': self.feature_extractor.parameters()},
-                {'params': self.classifier.parameters()},
-                {'params': self.discriminator.parameters()}
+                {"params": self.feature_extractor.parameters()},
+                {"params": self.classifier.parameters()},
+                {"params": self.discriminator.parameters()}
             ]
         
         if self.use_bottleneck:
             self.bottleneck = model.bottleneck
-            self.model_parameter.append({'params': self.bottleneck.parameters()})
+            self.model_parameter.append({
+                "params": self.bottleneck.parameters(),
+                "lr_mult": 10,
+            })
 
     def training_step(self, batch, batch_idx):
         (inputs_src, targets_src), (inputs_tgt, _) = batch
@@ -78,13 +83,17 @@ class DANN(pl.LightningModule):
         
         # Calculate p
         iterations = self.global_step
-        p = float(iterations / (self.epochs * (len(self.train_set_src) // self.batch_size)))
+        current_epoch = self.current_epoch
+        len_dataloader = self.len_dataloader
+        p = float(iterations + current_epoch * len_dataloader) / \
+                    self.epochs / len_dataloader
         
         if self.lr_schedule:
             # Schedule learning rate
             if self.finetune:
-                for param_group in self.optimizers().param_groups[1:]:
-                    param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
+                for param_group in self.optimizers().param_groups:
+                    param_group["lr"] = param_group["lr_mult"] * self.lr / (1. + self.alpha * p) ** self.beta
+#                 print(list(map(lambda x: x["lr"], self.optimizers().param_groups)))
             else:
                 for param_group in self.optimizers().param_groups:
                     param_group["lr"] = self.lr / (1. + self.alpha * p) ** self.beta
@@ -118,6 +127,7 @@ class DANN(pl.LightningModule):
         self.log("train_acc", self.train_accuracy(outputs_src, targets_src), on_epoch=True)
         self.log("train_loss_dsc", loss_dsc_src + loss_dsc_tgt, on_epoch=True)
         self.log("train_loss", loss, on_epoch=True)
+        self.log("p", p, on_epoch=True)
         return loss
 
     def training_epoch_end(self, outs):
@@ -160,6 +170,8 @@ class DANN(pl.LightningModule):
             self.model_parameter,
             lr=self.lr,
             momentum=0.9,
+            weight_decay=1e-4,
+            nesterov=True
         )
 
         return optimizer
@@ -167,6 +179,7 @@ class DANN(pl.LightningModule):
     def train_dataloader(self):
         src_loader = DataLoader(self.train_set_src, batch_size=self.batch_size, shuffle=True, num_workers=8)
         tgt_loader = DataLoader(self.train_set_tgt, batch_size=self.batch_size, shuffle=True, num_workers=8)
+        self.len_dataloader = min(len(src_loader), len(tgt_loader))
         return list(zip(src_loader, tgt_loader))
     
     def val_dataloader(self):
