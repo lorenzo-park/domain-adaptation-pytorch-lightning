@@ -2,6 +2,7 @@ from dataset.utils import get_train_dataset, get_test_dataset
 from model.component import GRL
 from model.resnet import ResNet
 from torch.utils.data import DataLoader
+from itertools import cycle
 
 import torch
 import torchsummary
@@ -55,17 +56,17 @@ class DANN(pl.LightningModule):
                 {
                     "params": self.feature_extractor.parameters(), 
                     "lr_mult": params["fe_lr"],
-                    'decay_mult': 1,
+                    'decay_mult': 2,
                 },
                 {
                     "params": self.classifier.parameters(),
                     "lr_mult": params["cls_lr"],
-                    'decay_mult': 1,
+                    'decay_mult': 2,
                 },
                 {
                     "params": self.discriminator.parameters(),
                     "lr_mult": params["disc_lr"],
-                    'decay_mult': 1,
+                    'decay_mult': 2,
                 }
             ]
         else:
@@ -81,9 +82,15 @@ class DANN(pl.LightningModule):
                 "params": self.bottleneck.parameters(),
                 "lr_mult": 10,
             })
+            
+        self.iters_per_epoch = params["iters_per_epoch"]
 
     def training_step(self, batch, batch_idx):
-        (inputs_src, targets_src), (inputs_tgt, _) = batch
+        if self.iters_per_epoch:
+            idx, (inputs_src, targets_src), (inputs_tgt, _) = batch
+        else:
+            (inputs_src, targets_src), (inputs_tgt, _) = batch
+            
         device = inputs_src.device
         
         # Calculate p
@@ -174,10 +181,14 @@ class DANN(pl.LightningModule):
         return optimizer
 
     def train_dataloader(self):
-        src_loader = DataLoader(self.train_set_src, batch_size=self.batch_size, shuffle=True, num_workers=8)
-        tgt_loader = DataLoader(self.train_set_tgt, batch_size=self.batch_size, shuffle=True, num_workers=8)
-        self.len_dataloader = min(len(src_loader), len(tgt_loader))
-        return list(zip(src_loader, tgt_loader))
+        src_loader = DataLoader(self.train_set_src, batch_size=self.batch_size, shuffle=True, num_workers=8, pin_memory=True, sampler=None, drop_last=True)
+        tgt_loader = DataLoader(self.train_set_tgt, batch_size=self.batch_size, shuffle=True, num_workers=8, pin_memory=True, sampler=None, drop_last=True)
+        if self.iters_per_epoch:
+            self.len_dataloader = self.iters_per_epoch
+            return list(zip(range(self.iters_per_epoch), cycle(src_loader), cycle(tgt_loader)))
+        else:
+            self.len_dataloader = min(len(src_loader), len(tgt_loader))
+            return list(zip(src_loader, tgt_loader))
     
     def val_dataloader(self):
         return DataLoader(self.val_set_src, batch_size=self.batch_size, num_workers=8)

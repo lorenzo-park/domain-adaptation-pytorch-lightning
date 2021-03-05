@@ -21,6 +21,9 @@ parser.add_argument("--fe_lr", type=float, default=0.1, help="Use target validat
 parser.add_argument("--cls_lr", type=float, default=1.0, help="Use target validation")
 parser.add_argument("--disc_lr", type=float, default=1.0, help="Use target validation")
 parser.add_argument("--log_neptune", type=bool, default=False, help="Use target validation")
+parser.add_argument("--alpha", type=float, default=10, help="Use target validation")
+parser.add_argument("--gamma", type=float, default=10, help="Use target validation")
+parser.add_argument("--iters_per_epoch", type=int, default=None, help="Use target validation")
 
 args = parser.parse_args()
 
@@ -36,15 +39,16 @@ params = {
     "img_size": get_img_size_from_source_dataset(args.src),
     "lr_schedule": args.lr_schedule,
     "use_bottleneck": args.use_bottleneck,
-    "gamma": 10,
-    "alpha": 10,
+    "gamma": args.gamma,
+    "alpha": args.alpha,
     "beta": 0.75,
     "seed": 8888,
     "fe_lr": args.fe_lr,
     "cls_lr": args.cls_lr,
     "disc_lr": args.disc_lr,
-    "weight_decay": 1e-3,
+    "weight_decay": 5e-4,
     "momentum": 0.9,
+    "iters_per_epoch": args.iters_per_epoch
 }
 
 print(params)
@@ -71,7 +75,8 @@ else:
 
 trainer = pl.Trainer(
     deterministic=True,
-    check_val_every_n_epoch=1, 
+    val_check_interval=24,
+#     check_val_every_n_epoch=1, 
     gpus=1,
     logger=logger,
     max_epochs=params["epoch"],
