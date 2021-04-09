@@ -59,24 +59,6 @@ class SVHNADDA(nn.Module):
       nn.ReLU(),
     )
 
-    self.feature_extractor_finetune = nn.Sequential(
-      nn.Conv2d(3, 64, kernel_size=5, stride=2, padding=2),
-      nn.BatchNorm2d(64),
-      nn.Dropout2d(0.1),
-      nn.ReLU(),
-      nn.Conv2d(64, 128, kernel_size=5, stride=2, padding=2),
-      nn.BatchNorm2d(128),
-      nn.Dropout2d(0.3),
-      nn.ReLU(),
-      nn.Conv2d(128, 256, kernel_size=5, stride=2, padding=2),
-      nn.BatchNorm2d(256),
-      nn.Dropout2d(0.5),
-      nn.ReLU(),
-      Flatten(),
-      nn.Linear(256*4*4, 500),
-      nn.ReLU(),
-    )
-
     self.classifier = nn.Sequential (
       nn.Dropout(),
       nn.Linear(500, 10),
