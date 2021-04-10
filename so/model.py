@@ -39,15 +39,15 @@ class SO(pl.LightningModule):
     train_acc = self.train_accuracy(outputs, targets)
 
     self.log("train_loss", loss, on_step=False, on_epoch=True, sync_dist=True)
-    self.log("train_acc", train_acc, on_step=False, on_epoch=True, 
+    self.log("train_acc", train_acc, on_step=False, on_epoch=True,
              sync_dist=True)
-    
+
     return loss
 
   def training_epoch_end(self, outs):
-        self.log("train_acc_epoch", self.train_accuracy.compute(), 
-                 prog_bar=True, logger=True, sync_dist=True)
-        
+    self.log("train_acc_epoch", self.train_accuracy.compute(),
+              prog_bar=True, logger=True, sync_dist=True)
+
   def validation_step(self, batch, batch_idx):
     inputs, targets = batch
     features = self.feature_extractor(inputs)
@@ -62,7 +62,7 @@ class SO(pl.LightningModule):
     return loss
 
   def validation_epoch_end(self, outs):
-        self.log("val_acc_epoch", self.val_accuracy.compute(), 
+        self.log("val_acc_epoch", self.val_accuracy.compute(),
                  prog_bar=True, logger=True, sync_dist=True)
 
   def test_step(self, batch, batch_idx):
@@ -73,9 +73,9 @@ class SO(pl.LightningModule):
     loss = F.cross_entropy(outputs, targets)
     test_acc = self.test_accuracy(outputs, targets)
 
-    self.log("test_acc", test_acc, on_step=False, on_epoch=True, logger=True, 
+    self.log("test_acc", test_acc, on_step=False, on_epoch=True, logger=True,
              sync_dist=True)
-    self.log("test_loss", loss, on_step=False, on_epoch=True, logger=True, 
+    self.log("test_loss", loss, on_step=False, on_epoch=True, logger=True,
              sync_dist=True)
 
     return loss
@@ -104,7 +104,7 @@ class SO(pl.LightningModule):
         weight_decay=self.weight_decay,
         nesterov=True
       )
-      
+
     return optimizer
 
   def train_dataloader(self):

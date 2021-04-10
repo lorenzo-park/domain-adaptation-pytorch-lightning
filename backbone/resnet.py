@@ -6,7 +6,7 @@ from torchvision import models
 class ResNet(nn.Module):
   def __init__(self, classes, bottleneck=False, pretrained=False):
     super(ResNet, self).__init__()
-    
+
     model = models.resnet50(pretrained=pretrained)
     self.feature_extractor = nn.Sequential(
       model.conv1,
@@ -30,7 +30,7 @@ class ResNet(nn.Module):
       )
     else:
       feature_dim = 2048
-    
+
     self.classifier = nn.Sequential(
       nn.Linear(feature_dim, classes),
     )

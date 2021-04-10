@@ -29,7 +29,7 @@ class SVHNDANN(nn.Module):
       nn.ReLU(inplace=True),
       nn.Linear(in_features=2048, out_features=10),
     )
-    
+
     self.discriminator = nn.Sequential(
       nn.Linear(in_features=128 * 4 * 4, out_features=1024),
       nn.ReLU(inplace=True),
@@ -63,7 +63,7 @@ class SVHNADDA(nn.Module):
       nn.Dropout(),
       nn.Linear(500, 10),
     )
-    
+
     self.discriminator = nn.Sequential(
       nn.Linear(in_features=500, out_features=500),
       nn.ReLU(inplace=True),
