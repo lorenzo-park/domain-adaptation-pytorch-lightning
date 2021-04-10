@@ -9,38 +9,38 @@ class ResNet(nn.Module):
 
     model = models.resnet50(pretrained=pretrained)
     self.feature_extractor = nn.Sequential(
-      model.conv1,
-      model.bn1,
-      model.relu,
-      model.maxpool,
-      model.layer1,
-      model.layer2,
-      model.layer3,
-      model.layer4,
-      model.avgpool,
-      Flatten(),
+        model.conv1,
+        model.bn1,
+        model.relu,
+        model.maxpool,
+        model.layer1,
+        model.layer2,
+        model.layer3,
+        model.layer4,
+        model.avgpool,
+        Flatten(),
     )
     if bottleneck:
       feature_dim = 256
       self.bottleneck = nn.Sequential(
-        # Bottleneck layer
-        nn.Linear(2048, 256),
-        nn.ReLU(inplace=True),
-        nn.Dropout(),
+          # Bottleneck layer
+          nn.Linear(2048, 256),
+          nn.ReLU(inplace=True),
+          nn.Dropout(),
       )
     else:
       feature_dim = 2048
 
     self.classifier = nn.Sequential(
-      nn.Linear(feature_dim, classes),
+        nn.Linear(feature_dim, classes),
     )
 
     self.discriminator = nn.Sequential(
-      nn.Linear(in_features=feature_dim, out_features=1024),
-      nn.ReLU(inplace=True),
-      nn.Dropout(),
-      nn.Linear(in_features=1024, out_features=1024),
-      nn.ReLU(inplace=True),
-      nn.Dropout(),
-      nn.Linear(in_features=1024, out_features=2)
+        nn.Linear(in_features=feature_dim, out_features=1024),
+        nn.ReLU(inplace=True),
+        nn.Dropout(),
+        nn.Linear(in_features=1024, out_features=1024),
+        nn.ReLU(inplace=True),
+        nn.Dropout(),
+        nn.Linear(in_features=1024, out_features=2)
     )

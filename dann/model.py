@@ -84,8 +84,8 @@ class DANN(pl.LightningModule):
     return loss
 
   def training_epoch_end(self, outs):
-        self.log("train_acc_epoch", self.train_accuracy.compute(),
-                 prog_bar=True, logger=True, sync_dist=True)
+    self.log("train_acc_epoch", self.train_accuracy.compute(),
+             prog_bar=True, logger=True, sync_dist=True)
 
   def validation_step(self, batch, batch_idx):
     inputs, targets = batch
@@ -101,8 +101,8 @@ class DANN(pl.LightningModule):
     return loss
 
   def validation_epoch_end(self, outs):
-        self.log("val_acc_epoch", self.val_accuracy.compute(),
-                 prog_bar=True, logger=True, sync_dist=True)
+    self.log("val_acc_epoch", self.val_accuracy.compute(),
+             prog_bar=True, logger=True, sync_dist=True)
 
   def test_step(self, batch, batch_idx):
     inputs, targets = batch
@@ -125,28 +125,28 @@ class DANN(pl.LightningModule):
 
   def configure_optimizers(self):
     model_parameter = [
-      {
-        "params": self.feature_extractor.parameters(),
-        "lr_mult": 0.1 if self.backbone == "resnet" else 1.0,
-        'decay_mult': 2,
-      },
-      {
-        "params": self.classifier.parameters(),
-        "lr_mult": 1.0,
-        'decay_mult': 2,
-      },
-      {
-        "params": self.discriminator.parameters(),
-        "lr_mult":  1.0,
-        'decay_mult': 2,
-      }
+        {
+            "params": self.feature_extractor.parameters(),
+            "lr_mult": 0.1 if self.backbone == "resnet" else 1.0,
+            'decay_mult': 2,
+        },
+        {
+            "params": self.classifier.parameters(),
+            "lr_mult": 1.0,
+            'decay_mult': 2,
+        },
+        {
+            "params": self.discriminator.parameters(),
+            "lr_mult":  1.0,
+            'decay_mult': 2,
+        }
     ]
     optimizer = torch.optim.SGD(
-      model_parameter,
-      lr=self.lr,
-      momentum=self.momentum,
-      weight_decay=self.weight_decay,
-      nesterov=True
+        model_parameter,
+        lr=self.lr,
+        momentum=self.momentum,
+        weight_decay=self.weight_decay,
+        nesterov=True
     )
 
     return optimizer
@@ -190,9 +190,9 @@ class DANN(pl.LightningModule):
 
   def lr_schedule_step(self, p):
     for param_group in self.optimizers().param_groups:
-        param_group["lr"] = \
+      param_group["lr"] = \
           param_group["lr_mult"] * self.lr / (1 + self.alpha * p) ** self.beta
-        param_group["weight_decay"] = \
+      param_group["weight_decay"] = \
           self.weight_decay * param_group["decay_mult"]
 
   def get_p(self):

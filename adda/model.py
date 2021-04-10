@@ -137,7 +137,6 @@ class ADDA(pl.LightningModule):
   def test_dataloader(self):
     return DataLoader(self.test_set_tgt, batch_size=self.batch_size, num_workers=8)
 
-
   def init_dataset(self, src, tgt, img_size, irt, use_tgt_val):
     self.train_set_src, self.val_set_src = get_train_dataset(src, img_size)
     self.train_set_tgt, self.val_set_tgt = get_train_dataset(tgt, img_size)

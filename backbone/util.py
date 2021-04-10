@@ -5,6 +5,7 @@ from backbone.lenet import LeNet
 from backbone.svhn import SVHNDANN, SVHNADDA
 from backbone.resnet import ResNet
 
+
 def get_backbone(backbone, load=None):
   if backbone == "lenet":
     model = LeNet()
@@ -27,6 +28,5 @@ def get_backbone(backbone, load=None):
 
     classifier_path = os.path.join(load, "classifier.pth")
     model.classifier.load_state_dict(torch.load(classifier_path))
-
 
   return model

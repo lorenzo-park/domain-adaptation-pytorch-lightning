@@ -46,7 +46,7 @@ class SO(pl.LightningModule):
 
   def training_epoch_end(self, outs):
     self.log("train_acc_epoch", self.train_accuracy.compute(),
-              prog_bar=True, logger=True, sync_dist=True)
+             prog_bar=True, logger=True, sync_dist=True)
 
   def validation_step(self, batch, batch_idx):
     inputs, targets = batch
@@ -62,8 +62,8 @@ class SO(pl.LightningModule):
     return loss
 
   def validation_epoch_end(self, outs):
-        self.log("val_acc_epoch", self.val_accuracy.compute(),
-                 prog_bar=True, logger=True, sync_dist=True)
+    self.log("val_acc_epoch", self.val_accuracy.compute(),
+             prog_bar=True, logger=True, sync_dist=True)
 
   def test_step(self, batch, batch_idx):
     inputs, targets = batch
@@ -86,23 +86,23 @@ class SO(pl.LightningModule):
 
   def configure_optimizers(self):
     model_params = [
-      {"params": self.feature_extractor.parameters()},
-      {"params": self.classifier.parameters()}
+        {"params": self.feature_extractor.parameters()},
+        {"params": self.classifier.parameters()}
     ]
     if self.optimizer == "adam":
       optimizer = torch.optim.Adam(
-        model_params,
-        lr=self.lr,
-        betas=(self.momentum, 0.999),
-        weight_decay=self.weight_decay,
+          model_params,
+          lr=self.lr,
+          betas=(self.momentum, 0.999),
+          weight_decay=self.weight_decay,
       )
     else:
       optimizer = torch.optim.SGD(
-        model_params,
-        lr=self.lr,
-        momentum=self.momentum,
-        weight_decay=self.weight_decay,
-        nesterov=True
+          model_params,
+          lr=self.lr,
+          momentum=self.momentum,
+          weight_decay=self.weight_decay,
+          nesterov=True
       )
 
     return optimizer
