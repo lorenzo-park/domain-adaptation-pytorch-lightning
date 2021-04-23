@@ -17,7 +17,6 @@ def save_backbone(model, path):
 
 @hydra.main(config_name="config")
 def run(cfg):
-    print(cfg)
     pl.seed_everything(cfg.seed)
     if cfg.logger:
         from pytorch_lightning.loggers import WandbLogger
@@ -45,7 +44,8 @@ def run(cfg):
     trainer.test()
 
     if cfg.save:
-        save_backbone(model, cfg.save)
+        path = os.path.join(cfg.save_path, f"{cfg.dataset.src}2{cfg.dataset.tgt}")
+        save_backbone(model, path)
 
 if __name__ == '__main__':
   run()

@@ -6,7 +6,10 @@ from backbone.svhn import SVHNDANN, SVHNADDA
 from backbone.resnet import ResNet
 
 
-def get_backbone(backbone, load=None):
+def get_backbone(backbone, load=None, save_path=None):
+  if load is not None:
+    assert save_path is not None
+
   if backbone == "lenet":
     model = LeNet()
 
@@ -23,10 +26,10 @@ def get_backbone(backbone, load=None):
     model = ResNet(65, bottleneck=False, pretrained=True)
 
   if load:
-    feature_extractor_path = os.path.join(load, "feature_extractor.pth")
+    feature_extractor_path = os.path.join(save_path, "feature_extractor.pth")
     model.feature_extractor.load_state_dict(torch.load(feature_extractor_path))
 
-    classifier_path = os.path.join(load, "classifier.pth")
+    classifier_path = os.path.join(save_path, "classifier.pth")
     model.classifier.load_state_dict(torch.load(classifier_path))
 
   return model

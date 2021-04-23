@@ -1,14 +1,10 @@
 # @package _global_
 training:
   backbone: lenet
-  lr: 1e-2
+  lr: 1e-3
   weight_decay: 2.5e-5
-  optimizer: sgd
+  optimizer: adam
   batch_size: 64
   use_tgt_val: true
   iterations: false
   num_workers: 16
-  alpha: 10
-  gamma: 10
-  beta: 0.75
-  lr_schedule: true

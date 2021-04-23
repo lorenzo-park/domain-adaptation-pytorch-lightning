@@ -15,7 +15,7 @@ class DANN(pl.LightningModule):
   def __init__(self, cfg):
     super().__init__()
     self.cfg = cfg
-    model = get_backbone(cfg.training.backbone, cfg.training.load)
+    model = get_backbone(cfg.training.backbone)
 
     self.feature_extractor = model.feature_extractor
     self.classifier = model.classifier

@@ -9,21 +9,16 @@ from backbone.util import get_backbone
 
 
 class SO(pl.LightningModule):
-  def __init__(self, params):
+  def __init__(self, cfg):
     super().__init__()
-    model = get_backbone(params["backbone"], params["load"])
+    self.cfg = cfg
+    model = get_backbone(cfg.training.backbone)
 
     self.feature_extractor = model.feature_extractor
     self.classifier = model.classifier
 
-    self.init_dataset(params["src"], params["tgt"], params["img_size"],
-                      params["use_tgt_val"])
-
-    self.batch_size = params["batch_size"]
-    self.lr = params["lr"]
-    self.momentum = params["momentum"]
-    self.optimizer = params["optimizer"]
-    self.weight_decay = params["weight_decay"]
+    self.init_dataset(cfg.dataset.src, cfg.dataset.tgt, cfg.dataset.img_size,
+                      cfg.dataset.root, cfg.training.use_tgt_val)
 
     self.train_accuracy = pl.metrics.Accuracy()
     self.val_accuracy = pl.metrics.Accuracy()
@@ -89,39 +84,39 @@ class SO(pl.LightningModule):
         {"params": self.feature_extractor.parameters()},
         {"params": self.classifier.parameters()}
     ]
-    if self.optimizer == "adam":
+    if self.cfg.training.optimizer == "adam":
       optimizer = torch.optim.Adam(
           model_params,
-          lr=self.lr,
-          betas=(self.momentum, 0.999),
-          weight_decay=self.weight_decay,
+          lr=self.cfg.training.lr,
+          betas=(0.9, 0.999),
+          weight_decay=self.cfg.training.weight_decay,
       )
     else:
       optimizer = torch.optim.SGD(
           model_params,
-          lr=self.lr,
-          momentum=self.momentum,
-          weight_decay=self.weight_decay,
+          lr=self.cfg.training.lr,
+          momentum=0.9,
+          weight_decay=self.cfg.training.weight_decay,
           nesterov=True
       )
 
     return optimizer
 
   def train_dataloader(self):
-    return DataLoader(self.train_set_src, batch_size=self.batch_size,
-                      shuffle=True, num_workers=8)
+    return DataLoader(self.train_set_src, batch_size=self.cfg.training.batch_size,
+                      shuffle=True, num_workers=self.cfg.training.num_workers)
 
   def val_dataloader(self):
-    return DataLoader(self.val_set_src, batch_size=self.batch_size,
-                      num_workers=8)
+    return DataLoader(self.val_set_src, batch_size=self.cfg.training.batch_size,
+                      num_workers=self.cfg.training.num_workers)
 
   def test_dataloader(self):
-    return DataLoader(self.test_set_tgt, batch_size=self.batch_size,
-                      num_workers=8)
+    return DataLoader(self.test_set_tgt, batch_size=self.cfg.training.batch_size,
+                      num_workers=self.cfg.training.num_workers)
 
-  def init_dataset(self, src, tgt, img_size, use_tgt_val=False):
-    self.train_set_src, self.val_set_src = get_train_dataset(src, img_size)
-    self.test_set_tgt = get_test_dataset(tgt, img_size)
+  def init_dataset(self, src, tgt, img_size, root, use_tgt_val):
+    self.train_set_src, self.val_set_src = get_train_dataset(src, img_size, root)
+    self.test_set_tgt = get_test_dataset(tgt, img_size, root)
 
     if use_tgt_val:
       print("####### WARNING #######")
