@@ -12,39 +12,27 @@ from dataset.util import get_train_dataset, get_test_dataset
 
 
 class DANN(pl.LightningModule):
-  def __init__(self, params):
+  def __init__(self, cfg):
     super().__init__()
-    self.backbone = params["backbone"]
-    model = get_backbone(self.backbone, params["load"])
+    self.cfg = cfg
+    model = get_backbone(cfg.training.backbone, cfg.training.load)
 
     self.feature_extractor = model.feature_extractor
     self.classifier = model.classifier
     self.discriminator = model.discriminator
 
-    self.init_dataset(params["src"], params["tgt"], params["img_size"],
-                      params["irt"], params["use_tgt_val"])
+    self.init_dataset(cfg.dataset.src, cfg.dataset.tgt, cfg.dataset.img_size,
+                      cfg.dataset.root, cfg.training.use_tgt_val)
 
-    self.batch_size = params["batch_size"]
-    self.lr = params["lr"]
-    self.momentum = params["momentum"]
-    self.optimizer = params["optimizer"]
-    self.weight_decay = params["weight_decay"]
-    self.lr_schedule = params["lr_schedule"]
-    self.iterations = params["iterations"]
-    self.epoch = params["epoch"]
-
-    self.alpha = 10
-    self.gamma = 10
-    self.beta = 0.75
-    self.register_buffer("targets_d_src", torch.ones(self.batch_size).long())
-    self.register_buffer("targets_d_tgt", torch.zeros(self.batch_size).long())
+    self.register_buffer("targets_d_src", torch.ones(cfg.training.batch_size).long())
+    self.register_buffer("targets_d_tgt", torch.zeros(cfg.training.batch_size).long())
 
     self.train_accuracy = pl.metrics.Accuracy()
     self.val_accuracy = pl.metrics.Accuracy()
     self.test_accuracy = pl.metrics.Accuracy()
 
   def training_step(self, batch, batch_idx):
-    if self.iterations:
+    if self.cfg.training.iterations:
       idx, (inputs_src, targets_src), (inputs_tgt, _) = batch
     else:
       (inputs_src, targets_src), (inputs_tgt, _) = batch
@@ -52,7 +40,7 @@ class DANN(pl.LightningModule):
     p = self.get_p()
     lambda_p = self.get_lambda_p(p)
 
-    if self.lr_schedule:
+    if self.cfg.training.lr_schedule:
       self.lr_schedule_step(p)
 
     features_src = self.feature_extractor(inputs_src)
@@ -127,7 +115,7 @@ class DANN(pl.LightningModule):
     model_parameter = [
         {
             "params": self.feature_extractor.parameters(),
-            "lr_mult": 0.1 if self.backbone == "resnet" else 1.0,
+            "lr_mult": 0.1 if self.cfg.training.backbone == "resnet" else 1.0,
             'decay_mult': 2,
         },
         {
@@ -141,46 +129,52 @@ class DANN(pl.LightningModule):
             'decay_mult': 2,
         }
     ]
-    optimizer = torch.optim.SGD(
-        model_parameter,
-        lr=self.lr,
-        momentum=self.momentum,
-        weight_decay=self.weight_decay,
-        nesterov=True
-    )
+    if self.cfg.training.optimizer == "sgd":
+      optimizer = torch.optim.SGD(
+          model_parameter,
+          lr=self.cfg.training.lr,
+          momentum=0.9,
+          weight_decay=self.cfg.training.weight_decay,
+          nesterov=True
+      )
+    else:
+      optimizer = torch.optim.Adam(
+          model_parameter,
+          lr=self.cfg.training.lr,
+          betas=(0.9, 0.999),
+          weight_decay=self.cfg.training.weight_decay,
+      )
+
 
     return optimizer
 
   def train_dataloader(self):
-    src_loader = DataLoader(self.train_set_src, batch_size=self.batch_size,
-                            shuffle=True, num_workers=8, pin_memory=True,
+    src_loader = DataLoader(self.train_set_src, batch_size=self.cfg.training.batch_size,
+                            shuffle=True, num_workers=self.cfg.training.num_workers, pin_memory=True,
                             sampler=None, drop_last=True)
-    tgt_loader = DataLoader(self.train_set_tgt, batch_size=self.batch_size,
-                            shuffle=True, num_workers=8, pin_memory=True,
+    tgt_loader = DataLoader(self.train_set_tgt, batch_size=self.cfg.training.batch_size,
+                            shuffle=True, num_workers=self.cfg.training.num_workers, pin_memory=True,
                             sampler=None, drop_last=True)
-    if self.iterations:
-      self.len_dataloader = self.iterations
-      return list(zip(range(self.iterations), cycle(src_loader),
+    if self.cfg.training.iterations:
+      self.len_dataloader = self.cfg.training.iterations
+      return list(zip(range(self.cfg.training.iterations), cycle(src_loader),
                       cycle(tgt_loader)))
     else:
       self.len_dataloader = min(len(src_loader), len(tgt_loader))
       return list(zip(src_loader, tgt_loader))
 
   def val_dataloader(self):
-    return DataLoader(self.val_set_src, batch_size=self.batch_size,
-                      num_workers=8)
+    return DataLoader(self.val_set_src, batch_size=self.cfg.training.batch_size,
+                      num_workers=self.cfg.training.num_workers)
 
   def test_dataloader(self):
-    return DataLoader(self.test_set_tgt, batch_size=self.batch_size,
-                      num_workers=8)
+    return DataLoader(self.test_set_tgt, batch_size=self.cfg.training.batch_size,
+                      num_workers=self.cfg.training.num_workers)
 
-  def init_dataset(self, src, tgt, img_size, irt, use_tgt_val):
-    self.train_set_src, self.val_set_src = get_train_dataset(src, img_size)
-    self.train_set_tgt, self.val_set_tgt = get_train_dataset(tgt, img_size)
-    self.test_set_tgt = get_test_dataset(tgt, img_size)
-
-    if irt:
-      self.train_set_tgt, _ = get_train_dataset(irt, img_size)
+  def init_dataset(self, src, tgt, img_size, root, use_tgt_val):
+    self.train_set_src, self.val_set_src = get_train_dataset(src, img_size, root)
+    self.train_set_tgt, self.val_set_tgt = get_train_dataset(tgt, img_size, root)
+    self.test_set_tgt = get_test_dataset(tgt, img_size, root)
 
     if use_tgt_val:
       print("####### WARNING #######")
@@ -191,19 +185,19 @@ class DANN(pl.LightningModule):
   def lr_schedule_step(self, p):
     for param_group in self.optimizers().param_groups:
       param_group["lr"] = \
-          param_group["lr_mult"] * self.lr / (1 + self.alpha * p) ** self.beta
+          param_group["lr_mult"] * self.cfg.training.lr / (1 + self.cfg.training.alpha * p) ** self.cfg.training.beta
       param_group["weight_decay"] = \
-          self.weight_decay * param_group["decay_mult"]
+          self.cfg.training.weight_decay * param_group["decay_mult"]
 
   def get_p(self):
     current_iterations = self.global_step
     current_epoch = self.current_epoch
     len_dataloader = self.len_dataloader
-    p = float(current_iterations / (self.epoch * len_dataloader))
+    p = float(current_iterations / (self.cfg.epoch * len_dataloader))
 
     return p
 
   def get_lambda_p(self, p):
-    lambda_p = 2. / (1. + np.exp(-self.gamma * p)) - 1
+    lambda_p = 2. / (1. + np.exp(-self.cfg.training.gamma * p)) - 1
 
     return lambda_p

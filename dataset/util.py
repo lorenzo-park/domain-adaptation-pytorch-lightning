@@ -11,51 +11,51 @@ import torchvision
 import torchvision.transforms as transforms
 
 
-def get_src_tgt_datasets(src, tgt, img_size=32):
-  train_set, val_set = get_train_dataset(name, img_size)
-  test_set = get_test_dataset(name, img_size)
+def get_src_tgt_datasets(src, tgt, img_size, root):
+  train_set, val_set = get_train_dataset(name, img_size, root)
+  test_set = get_test_dataset(name, img_size, root)
 
   return train_set, val_set, test_set
 
 
-def get_train_dataset(name, img_size=32):
-  train_set, val_set = get_dataset(name, True, img_size)
+def get_train_dataset(name, img_size, root):
+  train_set, val_set = get_dataset(name, True, img_size, root)
   return train_set, val_set
 
 
-def get_test_dataset(name, img_size=32):
-  dataset, _ = get_dataset(name, False, img_size)
+def get_test_dataset(name, img_size, root):
+  dataset, _ = get_dataset(name, False, img_size, root)
   return dataset
 
 
-def get_dataset(name, train, img_size):
+def get_dataset(name, train, img_size, root):
   if name == "mnist":
-    dataset = get_mnist(train, img_size)
+    dataset = get_mnist(train, img_size, root)
   if name == "emnist_letters":
-    dataset = get_emnist_letters(train, img_size)
+    dataset = get_emnist_letters(train, img_size, root)
   if name == "fmnist":
-    dataset = get_fmnist(train, img_size)
+    dataset = get_fmnist(train, img_size, root)
   if name == "svhn":
-    dataset = get_svhn(train, img_size)
+    dataset = get_svhn(train, img_size, root)
   if name == "mnist_m":
-    dataset = get_mnist_m(train, img_size)
+    dataset = get_mnist_m(train, img_size, root)
   if name == "emnist_m_letters":
-    dataset = get_emnist_m_letters(train, img_size)
+    dataset = get_emnist_m_letters(train, img_size, root)
   if name == "fmnist_m":
-    dataset = get_fmnist_m(train, img_size)
+    dataset = get_fmnist_m(train, img_size, root)
   if name in ["A", "W", "D"]:
-    dataset = get_office31(train, img_size, name)
+    dataset = get_office31(train, img_size, name, root)
   if name in ["Ar", "Cl", "Pr", "Rw"]:
-    dataset = get_officehome(train, img_size, name)
+    dataset = get_officehome(train, img_size, name, root)
   if name == "svhn2mnist":
-    dataset = get_svhn2mnist(train, img_size)
+    dataset = get_svhn2mnist(train, img_size, root)
   if name == "mnist2mnist_m":
-    dataset = get_mnist2mnist_m(train, img_size)
+    dataset = get_mnist2mnist_m(train, img_size, root)
 
   return dataset
 
 
-def get_svhn2mnist(train, img_size):
+def get_svhn2mnist(train, img_size, root):
   if img_size > 32:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -70,12 +70,12 @@ def get_svhn2mnist(train, img_size):
     ])
 
   dataset = StylizedDataset(
-      root="./data/svhn2mnist", classes=[str(i) for i in range(10)], transform=transform_mnist_train)
+      root=f"{root}/svhn2mnist", classes=[str(i) for i in range(10)], transform=transform_mnist_train)
 
   return dataset, None
 
 
-def get_mnist2mnist_m(train, img_size):
+def get_mnist2mnist_m(train, img_size, root):
   if img_size > 32:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -89,13 +89,13 @@ def get_mnist2mnist_m(train, img_size):
         transforms.Normalize(mean=[0.5], std=[0.5]),
     ])
 
-  dataset = StylizedDataset(root="./data/mnist2mnist_m",
+  dataset = StylizedDataset(root=f"{root}/mnist2mnist_m",
                             classes=[str(i) for i in range(10)], transform=transform_mnist_train)
 
   return dataset, None
 
 
-def get_mnist(train, img_size):
+def get_mnist(train, img_size, root):
   if img_size > 28:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -114,7 +114,7 @@ def get_mnist(train, img_size):
     ])
 
   dataset = torchvision.datasets.MNIST(
-      root='./data', train=train, download=True, transform=transform_mnist_train)
+      root=root, train=train, download=True, transform=transform_mnist_train)
   if train:
     train_set, val_set = torch.utils.data.random_split(
         dataset, [50000, 10000])
@@ -123,7 +123,7 @@ def get_mnist(train, img_size):
     return dataset, None
 
 
-def get_emnist_letters(train, img_size):
+def get_emnist_letters(train, img_size, root):
   if img_size > 28:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -142,7 +142,7 @@ def get_emnist_letters(train, img_size):
     ])
 
   dataset = torchvision.datasets.EMNIST(
-      root='./data', train=train, split="letters", download=True, transform=transform_mnist_train)
+      root=root, train=train, split="letters", download=True, transform=transform_mnist_train)
   dataset_len = len(dataset)
   if train:
     train_set, val_set = torch.utils.data.random_split(
@@ -154,7 +154,7 @@ def get_emnist_letters(train, img_size):
     return dataset, None
 
 
-def get_fmnist(train, img_size):
+def get_fmnist(train, img_size, root):
   if img_size > 28:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -173,7 +173,7 @@ def get_fmnist(train, img_size):
     ])
 
   dataset = torchvision.datasets.FashionMNIST(
-      root='./data', train=train, download=True, transform=transform_mnist_train)
+      root=root, train=train, download=True, transform=transform_mnist_train)
   dataset_len = len(dataset)
   if train:
     train_set, val_set = torch.utils.data.random_split(
@@ -183,7 +183,7 @@ def get_fmnist(train, img_size):
     return dataset, None
 
 
-def get_emnist_m_letters(train, img_size):
+def get_emnist_m_letters(train, img_size, root):
   if img_size > 28:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -197,14 +197,14 @@ def get_emnist_m_letters(train, img_size):
         transforms.Normalize(mean=[0.5], std=[0.5]),
     ])
 
-  dataset = EMNISTMLetters(root='./data', download=True,
+  dataset = EMNISTMLetters(root=root, download=True,
                            transform=transform_mnist_train)
 
   train_set, val_set = torch.utils.data.random_split(dataset, [50000, 12400])
   return train_set, None
 
 
-def get_fmnist_m(train, img_size):
+def get_fmnist_m(train, img_size, root):
   if img_size > 28:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -218,14 +218,14 @@ def get_fmnist_m(train, img_size):
         transforms.Normalize(mean=[0.5], std=[0.5]),
     ])
 
-  dataset = FashionMNISTM(root='./data', download=True,
+  dataset = FashionMNISTM(root=root, download=True,
                           transform=transform_mnist_train)
 
   train_set, val_set = torch.utils.data.random_split(dataset, [50000, 10000])
   return train_set, None
 
 
-def get_svhn(train, img_size):
+def get_svhn(train, img_size, root):
   if img_size > 32:
     transform_svhn_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -242,18 +242,18 @@ def get_svhn(train, img_size):
   if train:
     split = "train"
     dataset = torchvision.datasets.SVHN(
-        root='./data', split=split, download=True, transform=transform_svhn_train)
+        root=root, split=split, download=True, transform=transform_svhn_train)
     train_set, val_set = torch.utils.data.random_split(
         dataset, [63257, 10000])
     return train_set, val_set
   else:
     split = "test"
     dataset = torchvision.datasets.SVHN(
-        root='./data', split=split, download=True, transform=transform_svhn_train)
+        root=root, split=split, download=True, transform=transform_svhn_train)
     return dataset, None
 
 
-def get_mnist_m(train, img_size):
+def get_mnist_m(train, img_size, root):
   if img_size > 28:
     transform_mnist_train = transforms.Compose([
         transforms.Resize(size=(img_size, img_size)),
@@ -267,7 +267,7 @@ def get_mnist_m(train, img_size):
         transforms.Normalize(mean=[0.5], std=[0.5]),
     ])
 
-  dataset = MNISTM(root='./data', train=train, download=True,
+  dataset = MNISTM(root=root, train=train, download=True,
                    transform=transform_mnist_train)
   if train:
     train_set, val_set = torch.utils.data.random_split(
@@ -277,7 +277,7 @@ def get_mnist_m(train, img_size):
     return dataset, None
 
 
-def get_office31(train, img_size, domain_type):
+def get_office31(train, img_size, domain_type, root):
   #     transform_train = transforms.Compose([
   #         transforms.Resize(227),
   #         transforms.ToTensor(),
@@ -304,9 +304,9 @@ def get_office31(train, img_size, domain_type):
   ])
 
   dataset_train = Office31(
-      root="./data/office31", task=domain_type, download=True, transform=transform_train)
+      root=f"{root}/office31", task=domain_type, download=True, transform=transform_train)
   dataset_test = Office31(
-      root="./data/office31", task=domain_type, download=True, transform=transform_test)
+      root=f"{root}/office31", task=domain_type, download=True, transform=transform_test)
 
   if train:
     return dataset_train, dataset_test
@@ -314,7 +314,7 @@ def get_office31(train, img_size, domain_type):
     return dataset_test, None
 
 
-def get_officehome(train, img_size, domain_type):
+def get_officehome(train, img_size, domain_type, root):
   #     transform_train = transforms.Compose([
   #         transforms.Lambda(lambda image: image.resize((256, 256))),
   #         transforms.RandomResizedCrop(size=(img_size, img_size)),
@@ -343,9 +343,9 @@ def get_officehome(train, img_size, domain_type):
   ])
 
   dataset_train = OfficeHome(
-      root="./data/officehome", task=domain_type, download=True, transform=transform_train)
+      root=f"{root}/officehome", task=domain_type, download=True, transform=transform_train)
   dataset_test = OfficeHome(
-      root="./data/officehome", task=domain_type, download=True, transform=transform_test)
+      root=f"{root}/officehome", task=domain_type, download=True, transform=transform_test)
 
   if train:
     return dataset_train, dataset_test

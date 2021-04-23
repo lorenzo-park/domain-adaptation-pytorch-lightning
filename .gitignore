@@ -4,3 +4,4 @@ dcuda/
 wandb/
 pretrained/
 .vscode/
+outputs/

@@ -1,0 +1,6 @@
+# @package _global_
+training:
+  alpha: 10
+  gamma: 10
+  beta: 0.75
+  lr_schedule: true

@@ -1,0 +1,27 @@
+defaults:
+  - ${model}/config
+
+model: dann
+
+dataset:
+  src: mnist
+  tgt: mnist_m
+  img_size: 28
+  root: "/root/domain-adaptation-pytorch-lightning/data"
+
+training:
+  backbone: lenet
+  lr: 1e-2
+  weight_decay: 2.5e-5
+  optimizer: sgd
+  batch_size: 64
+  load: false
+  use_tgt_val: true
+  iterations: false
+  num_workers: 18
+
+epoch: 20
+logger: true
+save: true
+seed: 8888
+gpus: 1
